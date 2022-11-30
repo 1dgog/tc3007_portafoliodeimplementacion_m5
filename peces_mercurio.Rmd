@@ -1,0 +1,159 @@
+---
+title: "Los peces y el mercurio"
+author: "Javier de Golferichs García (A01139500)"
+date: "30 de octubre de 2022"
+bibliography: ref_mercurio.bib
+output:
+  pdf_document:
+    number_sections: yes
+    toc: yes
+    fig_caption: yes
+  html_document:
+    toc: yes
+    df_print: paged
+abstract: 'La contaminación por mercurio en lagos puede tener efectos negativos en la salud humana en caso de ingerir peces provenientes de aquellos lagos en donde la concentración sea lo suficientemente alta.
+Los métodos y tecnicas estadísticas usadas en el reporte incluyen un análisis de normalidad mediante la prueba de Anderson Darling, para analizar normalidad multivariada entre variables y evaluar el sesgo y curtosis de estas. En la segunda parte se usa un análisis de componentes principales, 
+Se encontró que si existe normalidad multivariada entre X4 y X10.'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r include=FALSE}
+library("MVN")
+library("corrplot")
+library("mnormt")
+library(FactoMineR)
+library(factoextra)
+library(ggplot2) 
+```
+
+```{r carga_de_datos, echo=FALSE, warning=FALSE}
+M <- read.csv("mercurio.csv")
+```
+
+# Introducción
+
+Se realizó un estudio sobre la concentración de mercurio en varios lagos de Florida y otras variables relevantes a esta.
+
+Este problema es importante pues contribuye a explicar los factores que influyen en la contaminación por mercurio que puede afectar la salud de los consumidores.
+
+Este documento presenta un análisis de normalidad de las variables para encontrar aquellas que tienen normalidad multivariada, así como de PCA para hacer agrupación de variables y reducir su complejidad al analizarlo.
+
+Al final se presentan las conclusiones del estudio, así como el repositorio en donde se encuentra el código y las referencias utilizadas.
+
+# Análisis de resultados
+
+En esta sección se presenta un análisis de normalidad multivariada y el análisis de componentes principales.
+
+## Análisis de normalidad
+
+Observese a continuación la prueba Anderson Darling aplicada a las variables X3 a X11, para encontrar variables con normalidad univariada.
+
+```{r, echo=FALSE}
+M_q <- M[,3:11]
+mvn_kt_y_se <- mvn(M_q,subset = NULL,
+                   mvn = "mardia", 
+                   covariance = FALSE,
+                   showOutliers = FALSE)
+mvn_kt_y_se$univariateNormality
+```
+
+Con base en lo anterior, se explora si las variables X4 y X10 tienen normalidad multivariada, para lo cual se aplica la prueba de Mardia, y detectar normalidad multivariada en este grupo.
+
+```{r, echo=FALSE}
+mvn_kt_y_se1 <- mvn(data.frame(M$X4, M$X10),
+                    subset = NULL,
+                    mvn = "mardia", 
+                    covariance = FALSE,
+                    showOutliers = FALSE)
+mvn_kt_y_se1$multivariateNormality
+```
+En la columna de resultado, se observa que efectivamente si se cuenta con normalidad multivariada.
+
+
+### Gráfica de contorno de normal multivariada previa.
+
+
+De la figura \ref{fig:contorno} se encuentra por la el ángulo de la forma, puede ser que 
+```{r contorno, echo=FALSE, warning=FALSE, fig.cap="\\label{fig:contorno}Datos atípicos", fig.align = 'center', out.height="30%"}
+mvn_pl <- mvn(data.frame(M$X4, M$X10),
+               subset = NULL,
+               mvn = "mardia",
+               covariance = FALSE,
+               showOutliers = FALSE,
+               multivariatePlot = "contour")
+```
+
+
+### Detección de datos atípicos en la normal multivariada
+
+Para la detectar los datos atípicos se uso un gráfico de QQplot multivariado y la distancia de Mahalanobis.
+
+```{r outliers, echo=FALSE, warning=FALSE, fig.cap="\\label{fig:outliers}Datos atípicos", fig.align = 'center', out.height="30%"}
+mvn_pl3 <- mvn(data.frame(M$X4, M$X10),
+               subset = NULL,
+               mvn = "hz",
+               covariance = FALSE,
+               multivariateOutlierMethod = "adj")
+```
+
+
+Se observa en la \ref{fig:outliers} que el QQ-plot no tiene una pendiente de 1, por lo que se asume que, como fue visto en la prueba de Mardia, los datos padecen de curtosis.
+
+Si, bien podría hacerse una transformación para lograr que se asemejen más a una recta de pendiente 1, la siguiente sección no debe ser elaborada con datos transformados, sino los originales.
+
+\newpage
+
+## Análisis de componentes principales
+
+El método de componentes principales (PCA) busca reducir la dimensionalidad de un problema al agrupar variables que provocan cierto comportamiento en el modelo, asegurando la ortogonalidad de las componentes, tal que estas son independientes entre si. [@Johnson2016]
+
+### Justificación para usar PCA
+
+El análisis de PCA será aplicado al grupo de las variables X3 a X11 (variables numéricas no categóricas), con la intención de agrupar características que influyen en el modelo y reducir la dimensionalidad y por ende complejidad de este.
+
+### Gráfico de vectores asociados a variables y puntuaciones de las observaciones.
+
+
+```{r var_dot, echo=FALSE, warning=FALSE, fig.cap="\\label{fig:pca}Aplicación de PCA a variables X3 a X11.", fig.align = 'center', out.height="30%"}
+datos <- M_q
+cp3 = PCA(datos,graph=TRUE)
+```
+
+En la figura \ref{fig:pca} se observa el PCA por variables, en donde se observa que se hay 2 grupos principales ubicados en los cuadrantes 1 y 2, y que la variable X8 no tiene mucha contribución.
+
+En este caso se observa que Dim 1, es la que separa estos dos grupos, donde el de la izquierda es por variables relacionadas con características del agua, y de la derecha con las que tienen que ver con la concentración del mercurio.
+
+En la figura \ref{fig:puntuaciones} se observan las puntuaciones de las observaciones.
+
+```{r puntuaciones, echo =FALSE, warning=FALSE, fig.cap="\\label{fig:puntuaciones}Puntuaciones de las observaciones.", fig.align = 'center', out.height="30%"}
+fviz_contrib(cp3, choice = c("var"))
+```
+
+### PCA y justificación de número de componentes.
+
+Observese de la figura \ref{fig:inflexion} que el cambio de curvatura se da en la componente 2, por lo que se considera que se deben de usar las 2 primeras componentes. 
+
+```{r, echo=FALSE, warning=FALSE, fig.cap="\\label{fig:inflexion}Aplicación de PCA a variables X3 a X11.", fig.align = 'center', out.height="30%"}
+fviz_screeplot(cp3)
+```
+
+
+### Interpretación y significancia de PCA
+
+
+# Conclusión
+
+Este análisis contribuye a responder a la pregunta del estudio al encontrar que los principales factores que influyen en el nivel de contaminación por mercurio en los peces de los lagos de florida son la alcalinidad y el PH, obtenidos de la \ref{fig:puntuaciones}.
+
+La normalidad encontrada en las variables de PH y concentración máxima de mercurio facilitan responder la pregunta sobre la variable con mayor influencia en la concentración por mercurio, puesto que al tener una distribución normal multivariada involucra que estas dos estan correlacionadas.
+
+Los componentes principales ayudan a abordar este problema al agrupar diferentes variables en dos dimenciones para facilitar el análisis e interpretación del modelo
+
+# Anexos
+
+Liga al código en GitHub []()
+
+# Referencias bibliográficas
