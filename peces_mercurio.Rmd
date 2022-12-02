@@ -29,6 +29,7 @@ library(factoextra)
 library(ggplot2) 
 ```
 
+
 ```{r carga_de_datos, echo=FALSE, warning=FALSE}
 M <- read.csv("mercurio.csv")
 ```
@@ -67,17 +68,18 @@ mvn_kt_y_se1 <- mvn(data.frame(M$X4, M$X10),
                     subset = NULL,
                     mvn = "mardia", 
                     covariance = FALSE,
-                    showOutliers = FALSE)
-mvn_kt_y_se1$multivariateNormality
+                    showOutliers = TRUE)
+mvn_kt_y_se1
 ```
-En la columna de resultado, se observa que efectivamente si se cuenta con normalidad multivariada.
 
+En la columna de resultado, se observa que efectivamente si se cuenta con normalidad multivariada.
 
 ### Gráfica de contorno de normal multivariada previa.
 
+Notese el sesgo del diagrama de contorno presente en la figura \ref{fig:contorno}, el cual al estar cargado a la derecha, se interpreta como la presencia de sesgo a la izquierda, lo cual también se observa en la figura \ref{fig:outliers}. Las elipsoides también confirman la presencia de curtosis como observado en la prueba de Mardia, realizada en la sección anterior.
 
-De la figura \ref{fig:contorno} se encuentra por la el ángulo de la forma, puede ser que 
-```{r contorno, echo=FALSE, warning=FALSE, fig.cap="\\label{fig:contorno}Datos atípicos", fig.align = 'center', out.height="30%"}
+
+```{r contorno, echo=FALSE, warning=FALSE, fig.cap="\\label{fig:contorno}Gráfica de contorno de X4 y X10", fig.align = 'center', out.height="30%"}
 mvn_pl <- mvn(data.frame(M$X4, M$X10),
                subset = NULL,
                mvn = "mardia",
@@ -86,12 +88,11 @@ mvn_pl <- mvn(data.frame(M$X4, M$X10),
                multivariatePlot = "contour")
 ```
 
-
 ### Detección de datos atípicos en la normal multivariada
 
 Para la detectar los datos atípicos se uso un gráfico de QQplot multivariado y la distancia de Mahalanobis.
 
-```{r outliers, echo=FALSE, warning=FALSE, fig.cap="\\label{fig:outliers}Datos atípicos", fig.align = 'center', out.height="30%"}
+```{r outliers, echo=FALSE, warning=FALSE, fig.cap="\\label{fig:outliers}Datos atípicos en QQplot", fig.align = 'center', out.height="30%"}
 mvn_pl3 <- mvn(data.frame(M$X4, M$X10),
                subset = NULL,
                mvn = "hz",
@@ -99,12 +100,10 @@ mvn_pl3 <- mvn(data.frame(M$X4, M$X10),
                multivariateOutlierMethod = "adj")
 ```
 
-
-Se observa en la \ref{fig:outliers} que el QQ-plot no tiene una pendiente de 1, por lo que se asume que, como fue visto en la prueba de Mardia, los datos padecen de curtosis.
+Se observa en la figura \ref{fig:outliers} que el QQ-plot no tiene una pendiente de 1, por lo que se asume que, como fue visto en la prueba de Mardia, los datos padecen de sesgo y curtosis.
 
 Si, bien podría hacerse una transformación para lograr que se asemejen más a una recta de pendiente 1, la siguiente sección no debe ser elaborada con datos transformados, sino los originales.
 
-\newpage
 
 ## Análisis de componentes principales
 
@@ -114,10 +113,12 @@ El método de componentes principales (PCA) busca reducir la dimensionalidad de 
 
 El análisis de PCA será aplicado al grupo de las variables X3 a X11 (variables numéricas no categóricas), con la intención de agrupar características que influyen en el modelo y reducir la dimensionalidad y por ende complejidad de este.
 
+Recuerdese que para aplicar PCA no se requiere que las variables en cuestión sean normales, sin embargo la existencia de normalidad si enriquece el análisis, pues como tal PCA no asegura normalidad en las componentes pero si ortogonalidad.
+
 ### Gráfico de vectores asociados a variables y puntuaciones de las observaciones.
 
 
-```{r var_dot, echo=FALSE, warning=FALSE, fig.cap="\\label{fig:pca}Aplicación de PCA a variables X3 a X11.", fig.align = 'center', out.height="30%"}
+```{r var_dot, echo=FALSE, warning=FALSE, fig.cap="\\label{fig:pca}Aplicación de PCA a variables X3 a X11.s", fig.align = 'center', out.height="30%"}
 datos <- M_q
 cp3 = PCA(datos,graph=TRUE)
 ```
@@ -140,9 +141,11 @@ Observese de la figura \ref{fig:inflexion} que el cambio de curvatura se da en l
 fviz_screeplot(cp3)
 ```
 
-
 ### Interpretación y significancia de PCA
 
+Se encontró que el PCA aplicado a este problema ayuda a reducir la dimensionalidad del modelo y por ende su complejidad, al también descartar variables de baja contribución como X8, y dividir en dos componentes de las que la primera esta relacionada con las variables relacionadas con mercurio y la segunda con aquellas características encontradas en el lago.
+
+El PCA ayuda también a simplificar el análisis en comparación al anterior, para el cual se tuvo que buscar correlaciones entre variables y hacer pruebas para encontrar cuales son las que tienen correlación para despues buscar nivel de influencia, mientras que en este basto con hacer la separación en componentes.
 
 # Conclusión
 
@@ -150,10 +153,14 @@ Este análisis contribuye a responder a la pregunta del estudio al encontrar que
 
 La normalidad encontrada en las variables de PH y concentración máxima de mercurio facilitan responder la pregunta sobre la variable con mayor influencia en la concentración por mercurio, puesto que al tener una distribución normal multivariada involucra que estas dos estan correlacionadas.
 
-Los componentes principales ayudan a abordar este problema al agrupar diferentes variables en dos dimenciones para facilitar el análisis e interpretación del modelo
+Los componentes principales ayudan a abordar este problema al agrupar diferentes variables en dos dimenciones para facilitar el análisis e interpretación del modelo.
+
+Se logró reducir el modelo a dos componentes agrupadas por categoría divididas por la dimensión 1, así como descartar la variable X8 por su baja contribución, con lo cual, en comparación de la entrega anterior, agiliza el análisis al descartar variables que no necesariamente deben ser tomadas en cuenta.
+
+Se considera óptimo que como próximas investigaciones se haga un análisis de causalidad de cada una de las variables de la componente 1 (alcalinidad, PH, etc.)
 
 # Anexos
 
-Liga al código en GitHub []()
+Liga al código en GitHub [https://github.com/1dgog/tc3007_portafoliodeimplementacion_m5/blob/main/peces_mercurio.Rmd](https://github.com/1dgog/tc3007_portafoliodeimplementacion_m5/blob/main/peces_mercurio.Rmd)
 
 # Referencias bibliográficas
